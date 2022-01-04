@@ -14,3 +14,5 @@ Training:
 
 Testing:
 (1) test.ipynb
+
+Another copy with trained model is in gitlab: https://gitlab.com/zq415/dance.
