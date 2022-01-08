@@ -4,7 +4,8 @@ from data.image_folder import make_dataset
 from PIL import Image
 import random
 import util.util as util
-
+import pickle
+import numpy as np
 
 class UnalignedDataset(BaseDataset):
     """
@@ -32,8 +33,11 @@ class UnalignedDataset(BaseDataset):
             self.dir_A = os.path.join(opt.dataroot, "valA")
             self.dir_B = os.path.join(opt.dataroot, "valB")
 
-        self.A_paths = sorted(make_dataset(self.dir_A, opt.max_dataset_size))   # load images from '/path/to/data/trainA'
-        self.B_paths = sorted(make_dataset(self.dir_B, opt.max_dataset_size))    # load images from '/path/to/data/trainB'
+        # self.A_paths = sorted(make_dataset(self.dir_A, opt.max_dataset_size))   # load images from '/path/to/data/trainA'
+        # self.B_paths = sorted(make_dataset(self.dir_B, opt.max_dataset_size))    # load images from '/path/to/data/trainB'
+        self.A_paths = pickle.load(open(os.path.join(self.dir_A, 'img_paths.p'), "rb" ))
+        self.B_paths = pickle.load(open(os.path.join(self.dir_B, 'img_paths.p'), "rb" ))
+
         self.A_size = len(self.A_paths)  # get the size of dataset A
         self.B_size = len(self.B_paths)  # get the size of dataset B
 
@@ -55,8 +59,8 @@ class UnalignedDataset(BaseDataset):
         else:   # randomize the index for domain B to avoid fixed pairs.
             index_B = random.randint(0, self.B_size - 1)
         B_path = self.B_paths[index_B]
-        A_img = Image.open(A_path).convert('RGB')
-        B_img = Image.open(B_path).convert('RGB')
+        A_img = np.asarray(Image.open(A_path).convert('RGB'))
+        B_img = np.asarray(Image.open(B_path).convert('RGB'))
 
         # Apply image transformation
         # For FastCUT mode, if in finetuning phase (learning rate is decaying),

@@ -78,57 +78,80 @@ def get_params(opt, size):
 
     return {'crop_pos': (x, y), 'flip': flip}
 
+class random_crop(object):
+    def __init__(self, validROI_x=16, validROI_y=5, validROI_w=594, validROI_h=341, crop_size=320):
+        self.validROI_x = validROI_x
+        self.validROI_y = validROI_y
+        self.validROI_w = validROI_w
+        self.validROI_h = validROI_h
+        self.crop_size = crop_size
+    def __call__(self, img):
+        w = self.validROI_w
+        h = self.validROI_h
 
-def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, convert=True):
+        crop_size_w, crop_size_h = self.crop_size, self.crop_size
+        xoffs, yoffs = (self.validROI_x + np.random.randint(0, w-crop_size_w),
+                        self.validROI_y + np.random.randint(0, h-crop_size_h))
+
+        return img[yoffs:yoffs+crop_size_h,xoffs:xoffs+crop_size_w,:]
+
+def get_transform(opt):
     transform_list = []
-    if grayscale:
-        transform_list.append(transforms.Grayscale(1))
-    if 'fixsize' in opt.preprocess:
-        transform_list.append(transforms.Resize(params["size"], method))
-    if 'resize' in opt.preprocess:
-        osize = [opt.load_size, opt.load_size]
-        if "gta2cityscapes" in opt.dataroot:
-            osize[0] = opt.load_size // 2
-        transform_list.append(transforms.Resize(osize, method))
-    elif 'scale_width' in opt.preprocess:
-        transform_list.append(transforms.Lambda(lambda img: __scale_width(img, opt.load_size, opt.crop_size, method)))
-    elif 'scale_shortside' in opt.preprocess:
-        transform_list.append(transforms.Lambda(lambda img: __scale_shortside(img, opt.load_size, opt.crop_size, method)))
-
-    if 'zoom' in opt.preprocess:
-        if params is None:
-            transform_list.append(transforms.Lambda(lambda img: __random_zoom(img, opt.load_size, opt.crop_size, method)))
-        else:
-            transform_list.append(transforms.Lambda(lambda img: __random_zoom(img, opt.load_size, opt.crop_size, method, factor=params["scale_factor"])))
-
-    if 'crop' in opt.preprocess:
-        if params is None or 'crop_pos' not in params:
-            transform_list.append(transforms.RandomCrop(opt.crop_size))
-        else:
-            transform_list.append(transforms.Lambda(lambda img: __crop(img, params['crop_pos'], opt.crop_size)))
-
-    if 'patch' in opt.preprocess:
-        transform_list.append(transforms.Lambda(lambda img: __patch(img, params['patch_index'], opt.crop_size)))
-
-    if 'trim' in opt.preprocess:
-        transform_list.append(transforms.Lambda(lambda img: __trim(img, opt.crop_size)))
-
-    # if opt.preprocess == 'none':
-    transform_list.append(transforms.Lambda(lambda img: __make_power_2(img, base=4, method=method)))
-
-    if not opt.no_flip:
-        if params is None or 'flip' not in params:
-            transform_list.append(transforms.RandomHorizontalFlip())
-        elif 'flip' in params:
-            transform_list.append(transforms.Lambda(lambda img: __flip(img, params['flip'])))
-
-    if convert:
-        transform_list += [transforms.ToTensor()]
-        if grayscale:
-            transform_list += [transforms.Normalize((0.5,), (0.5,))]
-        else:
-            transform_list += [transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+    transform_list += [random_crop()]
+    transform_list += [transforms.ToTensor()]
+    transform_list += [transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     return transforms.Compose(transform_list)
+    
+# def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, convert=True):
+#     transform_list = []
+#     if grayscale:
+#         transform_list.append(transforms.Grayscale(1))
+#     if 'fixsize' in opt.preprocess:
+#         transform_list.append(transforms.Resize(params["size"], method))
+#     if 'resize' in opt.preprocess:
+#         osize = [opt.load_size, opt.load_size]
+#         if "gta2cityscapes" in opt.dataroot:
+#             osize[0] = opt.load_size // 2
+#         transform_list.append(transforms.Resize(osize, method))
+#     elif 'scale_width' in opt.preprocess:
+#         transform_list.append(transforms.Lambda(lambda img: __scale_width(img, opt.load_size, opt.crop_size, method)))
+#     elif 'scale_shortside' in opt.preprocess:
+#         transform_list.append(transforms.Lambda(lambda img: __scale_shortside(img, opt.load_size, opt.crop_size, method)))
+
+#     if 'zoom' in opt.preprocess:
+#         if params is None:
+#             transform_list.append(transforms.Lambda(lambda img: __random_zoom(img, opt.load_size, opt.crop_size, method)))
+#         else:
+#             transform_list.append(transforms.Lambda(lambda img: __random_zoom(img, opt.load_size, opt.crop_size, method, factor=params["scale_factor"])))
+
+#     if 'crop' in opt.preprocess:
+#         if params is None or 'crop_pos' not in params:
+#             transform_list.append(transforms.RandomCrop(opt.crop_size))
+#         else:
+#             transform_list.append(transforms.Lambda(lambda img: __crop(img, params['crop_pos'], opt.crop_size)))
+
+#     if 'patch' in opt.preprocess:
+#         transform_list.append(transforms.Lambda(lambda img: __patch(img, params['patch_index'], opt.crop_size)))
+
+#     if 'trim' in opt.preprocess:
+#         transform_list.append(transforms.Lambda(lambda img: __trim(img, opt.crop_size)))
+
+#     # if opt.preprocess == 'none':
+#     transform_list.append(transforms.Lambda(lambda img: __make_power_2(img, base=4, method=method)))
+
+#     if not opt.no_flip:
+#         if params is None or 'flip' not in params:
+#             transform_list.append(transforms.RandomHorizontalFlip())
+#         elif 'flip' in params:
+#             transform_list.append(transforms.Lambda(lambda img: __flip(img, params['flip'])))
+
+#     if convert:
+#         transform_list += [transforms.ToTensor()]
+#         if grayscale:
+#             transform_list += [transforms.Normalize((0.5,), (0.5,))]
+#         else:
+#             transform_list += [transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+#     return transforms.Compose(transform_list)
 
 
 def __make_power_2(img, base, method=Image.BICUBIC):
